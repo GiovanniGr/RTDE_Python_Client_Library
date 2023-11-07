@@ -44,7 +44,7 @@ logging.getLogger().setLevel(logging.INFO)
 conf = rtde_config.ConfigFile(config_filename)
 state_names, state_types = conf.get_recipe("state")
 setp_names, setp_types = conf.get_recipe("setp")
-#watchdog_names, watchdog_types = conf.get_recipe("watchdog")
+watchdog_names, watchdog_types = conf.get_recipe("watchdog")
 
 con = rtde.RTDE(ROBOT_HOST, ROBOT_PORT)
 con.connect()
@@ -55,18 +55,11 @@ con.get_controller_version()
 # setup recipes
 con.send_output_setup(state_names, state_types)
 setp = con.send_input_setup(setp_names, setp_types)
-#watchdog = con.send_input_setup(watchdog_names, watchdog_types)
+watchdog = con.send_input_setup(watchdog_names, watchdog_types)
 
 # Setpoints to move the robot to
 setp1 = [-0.12, -0.43, 0.14, 0, 3.11, 0.04]
-setp2 = [-0.12, -0.31, 0.21, 0, 3.14, 0.07]
-
-setpw = [-0.58, -1.628, -1.936, -1.108, -5.307, 3.506]
-setpa = [-0.113, -1.926, -1.591, -1.109, -3.492, 3.506]
-setps = [0.670, -1.371, -2.532, -1.108, -5.906, 3.506]
-setpd = [-0.280, -1.371, -1.649, -1.108, -5.906, 3.506]
-
-
+setp2 = [-0.12, -0.51, 0.21, 0, 3.11, 0.04]
 
 setp.input_double_register_0 = 0
 setp.input_double_register_1 = 0
@@ -76,7 +69,7 @@ setp.input_double_register_4 = 0
 setp.input_double_register_5 = 0
 
 # The function "rtde_set_watchdog" in the "rtde_control_loop.urp" creates a 1 Hz watchdog
-#watchdog.input_int_register_0 = 0
+watchdog.input_int_register_0 = 0
 
 
 def setp_to_list(sp):
@@ -106,34 +99,21 @@ while keep_running:
         break
 
     # do something...
-    
     if move_completed and state.output_int_register_0 == 1:
         move_completed = False
-        print("Hello")
-        print("Give me next position (w,a,s,d): ")
-        newPos=input()
-        if newPos=="w":
-            new_setp=setpw
-        elif newPos=="a":
-            new_setp=setpa
-        elif newPos=="s":
-            new_setp=setps
-        elif newPos=="d":
-            new_setp=setpd
-        else: new_setp=[0,0,0,0,0,0]
-        #new_setp = setp1 if setp_to_list(setp) == setp2 else setp2
+        new_setp = setp1 if setp_to_list(setp) == setp2 else setp2
         list_to_setp(setp, new_setp)
         print("New pose = " + str(new_setp))
         # send new setpoint
         con.send(setp)
-        #watchdog.input_int_register_0 = 1
+        watchdog.input_int_register_0 = 1
     elif not move_completed and state.output_int_register_0 == 0:
         print("Move to confirmed pose = " + str(state.target_q))
         move_completed = True
-        #watchdog.input_int_register_0 = 0
+        watchdog.input_int_register_0 = 0
 
     # kick watchdog
-    #con.send(watchdog)
+    con.send(watchdog)
 
 con.send_pause()
 
